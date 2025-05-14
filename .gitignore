@@ -51,8 +51,8 @@ CMakeCache.txt
 CMakeFiles
 Makefile
 cmake_install.cmake
-imsrg
-imsrg.cbp
+EigenXCUDATest
+EigenXCUDATest.cbp
 
 # LaTeX
 *.aux
