@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cassert>
+#include <sys/time.h>
 #include <cuda_runtime.h>
 #include "cublas_v2.h"
 #define CUDAErrorCheck(cudaStatus, customMSG) (CUDAErrorCheck(cudaStatus, __FILE__, __LINE__, customMSG))
@@ -130,17 +131,24 @@ void CUBLASZgemm(const Eigen::Ref<const MatriX> &A, const Eigen::Ref<const Matri
 
     float minutes = 0.0f;
     CUDAErrorCheck(cudaEventElapsedTime(&minutes, start, stop), "Retrieval of elapsed time on the device");
-    std::cout << "CUBLASZgemm() took " << minutes / 60000 << " minutes" << '\n';
+    std::cout << "CUBLASZgemm() took " << (minutes * 60) / 60000 << " seconds" << '\n';
 
     // Destroy unneeded memory
     BurnItAll(); // Yay! :)
 }
 
-int main(void){
+int main(int argc, char* argv[]){
+    if (argc < 4) {
+        std::cerr << "Three arguments are needed\n";
+        exit(EXIT_FAILURE);
+    }
+#if EIGEN_USE_BLAS
+    std::cout<<"[NOTIFICATION]: Eigen is indeed using BLAS.\n";
+#endif
     //  Initializing Eigen Matrices
-    int n = 700;
-    int m = 700;
-    int k = 700;
+    int n = std::atoi(argv[1]);
+    int m = std::atoi(argv[2]);
+    int k = std::atoi(argv[3]);
     MatriX A = MatriX::Random(n,k);
     MatriX B = MatriX::Random(k,m);
     MatriX C = MatriX::Random(n,m);
@@ -149,15 +157,22 @@ int main(void){
     C.noalias() = A * B;
     auto stopDot = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> durationDot = stopDot - startDot;
-    MatriX AxB = C;
     std::cout<<"CPU computed ||C||: " <<C.norm()<<'\n';
     std::cout<<"CPU duration: " <<durationDot.count()<<'\n';
+    MatriX AxB = C;
 
     auto startGPUDot = std::chrono::high_resolution_clock::now();
+    timeval start, end;
+    gettimeofday(&start, nullptr);
     CUBLASZgemm(A, B, C);
     cudaDeviceSynchronize();
+    gettimeofday(&end, nullptr);
+    // Calculate elapsed time in milliseconds
+    double elapsed_ms = (end.tv_sec - start.tv_sec) * 1000.0 +
+                        (end.tv_usec - start.tv_usec) / 1000.0;
     auto stopGPUDot = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> durationGPUDot = stopGPUDot - startGPUDot;
     std::cout<<"||C_gpu-C_cpu||: " <<(C-AxB).norm()<<'\n';
     std::cout<<"GPU duration using chrono: " <<durationGPUDot.count()<<'\n';
+    std::cout<<"GPU duration using gettimeofday(): " <<elapsed_ms * 1.0e-3 <<'\n';
 }
