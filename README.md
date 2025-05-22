@@ -4,12 +4,6 @@ to cuBLAS, then compares matrix products on the CPU vs GPU.
 
 # How to build project on MSU's ICER
 ```bash
-module purge
-module load NVHPC
-module load OpenBLAS
-module load CMake
-module load Eigen
-cmake -DCMAKE_BUILD_TYPE=Release CMakeLists.txt
-make -j 16
+source build.sh
 ./EigenXCUDATest 4000 4000 4000
 ```
